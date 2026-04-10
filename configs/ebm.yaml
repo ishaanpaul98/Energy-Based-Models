@@ -1,0 +1,48 @@
+# configs/ebm.yaml
+# Config for EBM (Energy-Based Model) training on STL-10
+#
+# Key references:
+#   Du & Mordatch (2019)  https://arxiv.org/abs/1903.08689
+#   Grathwohl et al. (2020) https://arxiv.org/abs/1912.03263
+
+seed: 42
+epochs: 200
+
+data:
+  root: "./data/stl10"
+  batch_size: 64
+  num_workers: 4
+  pin_memory: true
+  image_size: 96
+
+# Energy network architecture (models/ebm_net.py)
+# n_channels[0] = input channels, remaining = progressive conv channels
+n_channels: [3, 64, 128, 256, 512]
+feature_dim: 128
+
+# Langevin MCMC / SGLD parameters (training/sgld.py)
+# K steps per update  (more steps = better mixing, but slower training)
+sgld_steps: 60
+# alpha: step size. Gradient contribution scales as alpha/2.
+sgld_step_size: 10.0
+# sigma: Gaussian noise injected each SGLD step
+sgld_noise_std: 0.005
+replay_buffer_size: 10000
+# Probability of initialising a chain from the replay buffer vs. fresh noise
+replay_prob: 0.95
+
+optimizer:
+  name: "adam"
+  lr: 1.0e-4
+  weight_decay: 0.0
+
+scheduler:
+  warmup_epochs: 0
+  total_epochs: 200
+  min_lr: 1.0e-6
+
+log:
+  log_dir: "./runs/ebm"
+  log_interval: 100
+  ckpt_dir: "./checkpoints/ebm"
+  ckpt_interval: 20

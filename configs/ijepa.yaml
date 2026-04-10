@@ -1,0 +1,67 @@
+# configs/ijepa.yaml
+# Config for I-JEPA (Image Joint-Embedding Predictive Architecture)
+# trained on STL-10 unlabeled split.
+#
+# Key reference:
+#   Assran et al. (2023)  https://arxiv.org/abs/2301.08243
+
+seed: 42
+epochs: 300
+
+data:
+  root: "./data/stl10"
+  batch_size: 256
+  num_workers: 8
+  pin_memory: true
+  image_size: 96
+
+# ViT backbone (models/vit.py)
+# 96 / patch_size=8  =>  12x12 = 144 patches per image
+vit:
+  image_size: 96
+  patch_size: 8
+  in_channels: 3
+  embed_dim: 384
+  depth: 6
+  num_heads: 6
+  mlp_ratio: 4.0
+  dropout: 0.0
+  attn_dropout: 0.0
+
+# Narrow predictor ViT (models/ijepa.py)
+predictor:
+  embed_dim: 384            # must match vit.embed_dim (input/output of predictor)
+  predictor_embed_dim: 192  # internal width of the narrow predictor
+  depth: 4
+  num_heads: 4
+
+# Multi-block masking (training/masking.py)
+# See I-JEPA paper §3.2 for the algorithm.
+masking:
+  num_target_blocks: 4
+  target_scale_range: [0.15, 0.2]
+  target_aspect_ratio_range: [0.75, 1.5]
+  context_scale_range: [0.85, 1.0]
+  context_aspect_ratio: 1.0
+  allow_overlap: false
+
+# EMA momentum for target encoder (training/ema.py)
+# Annealed from ema_momentum -> ema_momentum_final over training.
+ema_momentum: 0.996
+ema_momentum_final: 1.0
+
+optimizer:
+  name: "adamw"
+  lr: 1.5e-4
+  weight_decay: 0.05
+
+scheduler:
+  warmup_epochs: 40
+  total_epochs: 300
+  min_lr: 1.0e-6
+
+log:
+  log_dir: "./runs/ijepa"
+  log_interval: 100
+  ckpt_dir: "./checkpoints/ijepa"
+  ckpt_interval: 25

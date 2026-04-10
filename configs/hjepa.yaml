@@ -1,0 +1,70 @@
+# configs/hjepa.yaml
+# Config for H-JEPA (Hierarchical JEPA) trained on STL-10 unlabeled split.
+#
+# Three hierarchical levels operating at different spatial resolutions:
+#   Level 0 (fine)   : patch 8×8  → 12×12 = 144 tokens  (textures/edges)
+#   Level 1 (mid)    : patch 16×16 → 6×6  = 36  tokens  (parts/patterns)
+#   Level 2 (coarse) : patch 32×32 → 3×3  = 9   tokens  (global semantics)
+
+seed: 42
+epochs: 300
+
+data:
+  root: "./data/stl10"
+  batch_size: 128
+  num_workers: 8
+  pin_memory: true
+  image_size: 96
+
+# One entry per hierarchical level (models/hjepa.py)
+levels:
+  - patch_size: 8
+    embed_dim: 256
+    depth: 4
+    num_heads: 4
+  - patch_size: 16
+    embed_dim: 384
+    depth: 6
+    num_heads: 6
+  - patch_size: 32
+    embed_dim: 512
+    depth: 4
+    num_heads: 8
+
+# Cross-level predictor (models/hjepa.py)
+# embed_dim should match the coarsest level for cross-level prediction.
+predictor:
+  embed_dim: 512
+  predictor_embed_dim: 256
+  depth: 4
+  num_heads: 8
+
+# Multi-block masking — same strategy as I-JEPA applied per level
+masking:
+  num_target_blocks: 4
+  target_scale_range: [0.15, 0.2]
+  target_aspect_ratio_range: [0.75, 1.5]
+  context_scale_range: [0.85, 1.0]
+  context_aspect_ratio: 1.0
+  allow_overlap: false
+
+ema_momentum: 0.996
+ema_momentum_final: 1.0
+# Weight on cross-level prediction loss vs. within-level loss
+cross_level_loss_weight: 0.5
+
+optimizer:
+  name: "adamw"
+  lr: 1.5e-4
+  weight_decay: 0.05
+
+scheduler:
+  warmup_epochs: 40
+  total_epochs: 300
+  min_lr: 1.0e-6
+
+log:
+  log_dir: "./runs/hjepa"
+  log_interval: 100
+  ckpt_dir: "./checkpoints/hjepa"
+  ckpt_interval: 25
